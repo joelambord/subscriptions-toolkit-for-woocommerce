@@ -1,0 +1,42 @@
+=== Trial Coupons for WooCommerce Subscriptions ===
+Contributors: joelambord
+Tags: woocommerce, subscriptions, coupons, free trial
+Requires at least: 6.2
+Tested up to: 6.6
+Requires PHP: 7.4
+WC requires at least: 8.0
+WC tested up to: 10.2
+Stable tag: 1.0.0
+License: GPLv2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+
+Adds a "Subscription Trial" coupon type that grants a configurable free trial (days / weeks / months / years) on WooCommerce Subscription products.
+
+== Description ==
+
+Adds a new coupon type "Subscription Trial" to WooCommerce. When applied, the customer sees "10 days" (for example) next to the coupon in the cart, pays 0.00 at checkout, and the first recurring payment is scheduled after the trial ends.
+
+
+== Compatibility ==
+
+Payment gateway: The plugin only changes the *initial* recurring total to 0.00 via the standard WooCommerce Subscriptions trial mechanism (`_subscription_trial_length` / `_subscription_trial_period` on the cart item). It does not touch the tokenization, SCA, or pre-authorization flow of the payment gateway. That means gateways that place a temporary hold ("security authorization" / "zero-amount authorization" / "verification charge") on the customer's card at sign-up - such as Stripe, Payrexx, Braintree, Mollie, and other well-behaved subscription gateways - continue to work exactly as configured: the card is still verified and stored during checkout, so the first recurring charge after the trial can be processed without further customer action, and any pre-auth hold defined by the gateway is still placed. The trial only affects the amount collected today, not whether the payment method is validated.
+
+Other coupons extensions: Compatible with many other plugins like Smart Coupons for WooCommerce (Pro) by WebToffee. The new coupon type registers via the standard `woocommerce_coupon_discount_types` filter that WebToffee's UI reads.
+
+== Requirements ==
+
+* WooCommerce 8.0+
+* WooCommerce Subscriptions 5.0+
+
+== How it works ==
+
+1. Admin creates a coupon and picks discount type "Subscription Trial".
+2. Admin enters trial length + period (e.g. 10, days).
+3. Customer applies the coupon in the cart while at least one subscription product is present.
+4. The plugin writes `_subscription_trial_length` / `_subscription_trial_period` onto each subscription cart item (session-only, not on the actual product post).
+5. WooCommerce Subscriptions recalculates: initial total becomes 0.00 and the renewal date is pushed out by the trial length.
+
+== Changelog ==
+
+= 1.0.0 =
+* Initial release.
