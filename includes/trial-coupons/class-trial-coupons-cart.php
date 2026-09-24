@@ -105,17 +105,10 @@ class WCST_Trial_Coupons_Cart {
 
 	/**
 	 * Decide whether to override the trial for the given product on the
-	 * current request.
-	 *
-	 * We deliberately do NOT verify that the product is currently in the
-	 * cart: WCS asks for trial length very early in the request lifecycle
-	 * (during cart hydration itself), when neither WC()->cart nor the
-	 * session snapshot are fully populated yet. That timing hole caused
-	 * every previous "in-cart" guard to silently return false and the
-	 * override to be skipped. The trial coupon can only be applied when a
+	 * current request. The presence of the trial coupon in the session
+	 * is a sufficient signal — the coupon can only be applied when a
 	 * subscription is in the cart to begin with (see
-	 * validate_cart_has_subscription()), so the mere presence of the
-	 * coupon in the session is a sufficient signal.
+	 * validate_cart_has_subscription()).
 	 */
 	private function should_override_trial_for( $product ) {
 		if ( ! $product instanceof WC_Product ) {
