@@ -6,7 +6,7 @@ Tested up to: 6.6
 Requires PHP: 7.4
 WC requires at least: 8.0
 WC tested up to: 10.2
-Stable tag: 1.1.0
+Stable tag: 1.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,6 +44,9 @@ Other coupon extensions: Compatible with many other plugins like Smart Coupons f
 5. WooCommerce Subscriptions recalculates: initial total becomes 0.00 and the renewal date is pushed out by the trial length.
 
 == Changelog ==
+
+= 1.1.1 =
+* Definitive fix for the "trial gone after failed / cancelled payment" case. The previous meta-injection approach was still bypassed on some checkout-retry code paths where WCS re-reads product data from the database. The plugin now hooks WCS's own trial getters (`woocommerce_subscriptions_product_trial_length` and `_period`) directly: whenever WCS asks the product for its trial, it receives the coupon's value — regardless of the product's own meta state, and without any window where the trial could be lost. The previous meta-injection hooks stay in place as a secondary defense for third-party code that reads the product meta directly.
 
 = 1.1.0 =
 * Renamed to **Subscriptions Toolkit for WooCommerce** — the plugin is now an umbrella for multiple WooCommerce Subscriptions modules. First module is Trial Coupons (previously the whole plugin). Retention and further modules will follow.

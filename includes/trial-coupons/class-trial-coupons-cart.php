@@ -15,19 +15,27 @@ defined( 'ABSPATH' ) || exit;
 class WCST_Trial_Coupons_Cart {
 
 	public function init() {
-		// Apply trial to cart items. Priority 5 runs before WCS's own price filters.
+		/*
+		 * Primary defense: hook WCS's own trial getters. Whenever WCS asks
+		 * a subscription product "what is your trial length / period?", we
+		 * answer with the value from the currently applied trial coupon —
+		 * regardless of whether the product's own meta happens to carry
+		 * the trial or not. This is what makes the trial survive checkout
+		 * retries after a failed / cancelled payment: WCS uses these
+		 * filters both on the initial calculation and on every subsequent
+		 * recurring-cart rebuild, so there is no "gap" where the trial
+		 * could be lost.
+		 */
+		add_filter( 'woocommerce_subscriptions_product_trial_length', [ $this, 'filter_trial_length' ], 10, 2 );
+		add_filter( 'woocommerce_subscriptions_product_trial_period', [ $this, 'filter_trial_period' ], 10, 2 );
+
+		/*
+		 * Secondary defense: still write the trial onto cart-item product
+		 * clones. Third-party code or older WCS paths may read the meta
+		 * directly rather than going through the getter filters above.
+		 */
 		add_action( 'woocommerce_before_calculate_totals',     [ $this, 'apply_trial_to_subscriptions' ], 5, 1 );
-
-		// Session rehydration: cart items are re-created from session on every
-		// request with fresh product clones. Inject trial meta right at that
-		// point so the price string / order review render correctly even before
-		// calculate_totals() runs. This is what fixes the "coupon looks applied
-		// but trial is gone" case after a failed / cancelled payment.
 		add_filter( 'woocommerce_get_cart_item_from_session',  [ $this, 'apply_trial_on_session_load' ], 20, 3 );
-
-		// After the cart is fully loaded from session, force a fresh totals
-		// calculation so the recurring cart (renewal date) is rebuilt with
-		// the trial we just injected.
 		add_action( 'woocommerce_cart_loaded_from_session',    [ $this, 'recalculate_after_session_load' ], 20 );
 
 		add_filter( 'woocommerce_coupon_is_valid',             [ $this, 'validate_cart_has_subscription' ], 10, 2 );
@@ -35,6 +43,124 @@ class WCST_Trial_Coupons_Cart {
 		add_filter( 'woocommerce_cart_totals_coupon_label',    [ $this, 'cart_coupon_label' ], 10, 2 );
 		add_filter( 'woocommerce_coupon_discount_amount_html', [ $this, 'cart_discount_amount_html' ], 10, 2 );
 		add_filter( 'woocommerce_subscriptions_product_price_string', [ $this, 'fix_german_price_string' ], 20, 3 );
+	}
+
+	/**
+	 * Filter WCS's product trial-length getter. Returns the coupon's trial
+	 * length when a trial coupon is currently applied and the product is a
+	 * subscription that lives in the current cart (or is being processed
+	 * for it).
+	 *
+	 * @param int|string      $length
+	 * @param WC_Product|null $product
+	 * @return int|string
+	 */
+	public function filter_trial_length( $length, $product = null ) {
+		if ( ! $this->should_override_trial_for( $product ) ) {
+			return $length;
+		}
+		list( $coupon_length ) = $this->get_active_trial_from_session();
+		return $coupon_length > 0 ? $coupon_length : $length;
+	}
+
+	/**
+	 * Filter WCS's product trial-period getter. Mirror of filter_trial_length.
+	 *
+	 * @param string          $period
+	 * @param WC_Product|null $product
+	 * @return string
+	 */
+	public function filter_trial_period( $period, $product = null ) {
+		if ( ! $this->should_override_trial_for( $product ) ) {
+			return $period;
+		}
+		list( , $coupon_period ) = $this->get_active_trial_from_session();
+		return '' !== $coupon_period ? $coupon_period : $period;
+	}
+
+	/**
+	 * Decide whether to override the trial for the given product on the
+	 * current request. Guarded to avoid leaking trial values into product
+	 * archive pages or admin screens where no cart context exists.
+	 */
+	private function should_override_trial_for( $product ) {
+		if ( ! $product instanceof WC_Product ) {
+			return false;
+		}
+		// Don't tamper inside wp-admin except during front-end AJAX (add-to-cart, cart update, ...).
+		if ( is_admin() && ! wp_doing_ajax() ) {
+			return false;
+		}
+		if ( ! $this->is_subscription_product( $product ) ) {
+			return false;
+		}
+		list( $length ) = $this->get_active_trial_from_session();
+		if ( $length <= 0 ) {
+			return false;
+		}
+		return $this->is_product_in_cart_or_session( $product );
+	}
+
+	/**
+	 * True when the product id (or, for variations, its parent id) matches
+	 * a cart item currently held either by WC()->cart or in the session
+	 * cart snapshot. Falling back to the session cart is important because
+	 * WCS may resolve trial values before WC()->cart is fully hydrated on
+	 * a request.
+	 */
+	private function is_product_in_cart_or_session( $product ) {
+		$target = (int) $product->get_id();
+		$parent = $product instanceof WC_Product_Variation ? (int) $product->get_parent_id() : 0;
+
+		if ( WC()->cart instanceof WC_Cart ) {
+			foreach ( WC()->cart->cart_contents as $item ) {
+				if ( empty( $item['data'] ) || ! $item['data'] instanceof WC_Product ) {
+					continue;
+				}
+				$item_id = (int) $item['data']->get_id();
+				if ( $item_id === $target || ( $parent && $item_id === $parent ) ) {
+					return true;
+				}
+			}
+		}
+
+		if ( WC()->session instanceof WC_Session ) {
+			$snapshot = (array) WC()->session->get( 'cart', [] );
+			foreach ( $snapshot as $item ) {
+				$pid = (int) ( $item['product_id']   ?? 0 );
+				$vid = (int) ( $item['variation_id'] ?? 0 );
+				if ( $target === $vid || $target === $pid || ( $parent && $parent === $pid ) ) {
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Per-request memoized lookup of [ length, period ] for the trial
+	 * coupon currently applied in the session. Avoids repeating the
+	 * DB query for every product getter call in a request.
+	 *
+	 * @return array{0:int,1:string}
+	 */
+	private function get_active_trial_from_session() {
+		static $cache = null;
+		if ( null !== $cache ) {
+			return $cache;
+		}
+		if ( ! WC()->session instanceof WC_Session ) {
+			$cache = [ 0, '' ];
+			return $cache;
+		}
+		$applied = (array) WC()->session->get( 'applied_coupons', [] );
+		if ( empty( $applied ) ) {
+			$cache = [ 0, '' ];
+			return $cache;
+		}
+		$cache = $this->find_trial_from_codes( $applied );
+		return $cache;
 	}
 
 	/**
