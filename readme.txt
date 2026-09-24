@@ -28,6 +28,8 @@ Payment gateway: The plugin only changes the *initial* recurring total to 0.00 v
 
 Other coupon extensions: Compatible with many other plugins like Smart Coupons for WooCommerce (Pro) by WebToffee. The new coupon type registers via the standard `woocommerce_coupon_discount_types` filter that WebToffee's UI reads.
 
+Cache plugins: Compatible with WP Rocket, W3 Total Cache, LiteSpeed Cache, WP Super Cache and other page/object cache plugins. All plugin logic runs on the cart and checkout pages, which cache plugins already exclude from full-page HTML caching by default (WooCommerce sets `DONOTCACHEPAGE`). No additional cache-exclusion rules or nonces need to be configured. Object caches (Redis / Memcached) are respected — the plugin uses standard WordPress metadata APIs.
+
 == Requirements ==
 
 * WooCommerce 8.0+
