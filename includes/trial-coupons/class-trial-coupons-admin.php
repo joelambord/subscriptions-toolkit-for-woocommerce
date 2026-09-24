@@ -1,29 +1,33 @@
 <?php
 /**
- * Admin: registers the "Subscription Trial" coupon type, its meta box fields,
- * saving, and validation exception in WooCommerce Subscriptions.
+ * Trial Coupons module — admin side.
  *
- * @package TrialCouponsWCS
+ * Registers the "Subscription Trial" coupon type, its meta box fields,
+ * saving, and a validation exception in WooCommerce Subscriptions so
+ * WCS accepts the custom type on subscription carts.
+ *
+ * @package SubscriptionsToolkitForWC
  */
 
 defined( 'ABSPATH' ) || exit;
 
-class TCWCS_Admin {
+class WCST_Trial_Coupons_Admin {
 
 	public function init() {
-		add_filter( 'woocommerce_coupon_discount_types',           [ $this, 'register_discount_type' ] );
-		add_action( 'woocommerce_coupon_options',                  [ $this, 'render_fields' ], 20, 2 );
-		add_action( 'woocommerce_coupon_options_save',             [ $this, 'save_fields' ], 10, 2 );
+		add_filter( 'woocommerce_coupon_discount_types',              [ $this, 'register_discount_type' ] );
+		add_action( 'woocommerce_coupon_options',                     [ $this, 'render_fields' ], 20, 2 );
+		add_action( 'woocommerce_coupon_options_save',                [ $this, 'save_fields' ], 10, 2 );
 		add_filter( 'woocommerce_subscriptions_validate_coupon_type', [ $this, 'bypass_wcs_validation' ], 5, 3 );
-		add_action( 'admin_enqueue_scripts',                       [ $this, 'enqueue_scripts' ] );
+		add_action( 'admin_enqueue_scripts',                          [ $this, 'enqueue_scripts' ] );
 	}
 
 	/**
-	 * Register the coupon type. Smart Coupons for WooCommerce Pro reads this
-	 * filter, so the new type shows up in its UI automatically.
+	 * Register the coupon type. Smart Coupons for WooCommerce Pro
+	 * (WebToffee) reads this filter, so the new type shows up in its UI
+	 * automatically.
 	 */
 	public function register_discount_type( $types ) {
-		$types[ TCWCS_COUPON_TYPE ] = __( 'Subscription Trial', 'trial-coupons-wcs' );
+		$types[ WCST_TRIAL_COUPON_TYPE ] = __( 'Subscription Trial', 'wc-subs-toolkit' );
 		return $types;
 	}
 
@@ -33,10 +37,10 @@ class TCWCS_Admin {
 			return;
 		}
 		wp_enqueue_script(
-			'tcwcs-coupon-admin',
-			TCWCS_URL . 'assets/js/coupon-admin.js',
+			'wcst-trial-coupons-admin',
+			WCST_URL . 'assets/js/trial-coupons-admin.js',
 			[ 'jquery' ],
-			TCWCS_VERSION,
+			WCST_VERSION,
 			true
 		);
 	}
@@ -49,36 +53,41 @@ class TCWCS_Admin {
 			$coupon = new WC_Coupon( $coupon_id );
 		}
 
-		$length = $coupon->get_meta( TCWCS_META_TRIAL_LENGTH );
-		$period = $coupon->get_meta( TCWCS_META_TRIAL_PERIOD );
+		$length = $coupon->get_meta( WCST_TRIAL_META_LENGTH );
+		$period = $coupon->get_meta( WCST_TRIAL_META_PERIOD );
 		if ( '' === $period ) {
 			$period = 'day';
 		}
 
 		$periods = function_exists( 'wcs_get_available_time_periods' )
 			? wcs_get_available_time_periods()
-			: [ 'day' => __( 'day', 'trial-coupons-wcs' ), 'week' => __( 'week', 'trial-coupons-wcs' ), 'month' => __( 'month', 'trial-coupons-wcs' ), 'year' => __( 'year', 'trial-coupons-wcs' ) ];
+			: [
+				'day'   => __( 'day', 'wc-subs-toolkit' ),
+				'week'  => __( 'week', 'wc-subs-toolkit' ),
+				'month' => __( 'month', 'wc-subs-toolkit' ),
+				'year'  => __( 'year', 'wc-subs-toolkit' ),
+			];
 		?>
 		<p class="form-field subscription_coupon_trial_length_field">
-			<label for="<?php echo esc_attr( TCWCS_META_TRIAL_LENGTH ); ?>">
-				<?php esc_html_e( 'Free trial', 'trial-coupons-wcs' ); ?>
+			<label for="<?php echo esc_attr( WCST_TRIAL_META_LENGTH ); ?>">
+				<?php esc_html_e( 'Free trial', 'wc-subs-toolkit' ); ?>
 			</label>
 			<span class="wrap">
 				<input type="number"
 				       min="0"
 				       step="1"
-				       id="<?php echo esc_attr( TCWCS_META_TRIAL_LENGTH ); ?>"
-				       name="<?php echo esc_attr( TCWCS_META_TRIAL_LENGTH ); ?>"
+				       id="<?php echo esc_attr( WCST_TRIAL_META_LENGTH ); ?>"
+				       name="<?php echo esc_attr( WCST_TRIAL_META_LENGTH ); ?>"
 				       class="wc_input_subscription_trial_length"
 				       style="margin-right:10px;"
 				       value="<?php echo esc_attr( $length ); ?>" />
 
-				<label for="<?php echo esc_attr( TCWCS_META_TRIAL_PERIOD ); ?>" style="display:none" class="wcs_hidden_label">
-					<?php esc_html_e( 'Subscription trial period', 'trial-coupons-wcs' ); ?>
+				<label for="<?php echo esc_attr( WCST_TRIAL_META_PERIOD ); ?>" style="display:none" class="wcs_hidden_label">
+					<?php esc_html_e( 'Subscription trial period', 'wc-subs-toolkit' ); ?>
 				</label>
 
-				<select id="<?php echo esc_attr( TCWCS_META_TRIAL_PERIOD ); ?>"
-				        name="<?php echo esc_attr( TCWCS_META_TRIAL_PERIOD ); ?>"
+				<select id="<?php echo esc_attr( WCST_TRIAL_META_PERIOD ); ?>"
+				        name="<?php echo esc_attr( WCST_TRIAL_META_PERIOD ); ?>"
 				        class="wc_input_subscription_trial_period last">
 					<?php foreach ( $periods as $value => $label ) : ?>
 						<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $value, $period ); ?>>
@@ -89,7 +98,7 @@ class TCWCS_Admin {
 			</span>
 			<?php
 			if ( function_exists( 'wcs_help_tip' ) ) {
-				echo wcs_help_tip( esc_html__( 'Length of the free trial granted when this coupon is applied. The customer pays 0.00 at checkout and the first recurring payment is delayed by this period.', 'trial-coupons-wcs' ) );
+				echo wcs_help_tip( esc_html__( 'Length of the free trial granted when this coupon is applied. The customer pays 0.00 at checkout and the first recurring payment is delayed by this period.', 'wc-subs-toolkit' ) );
 			}
 			?>
 		</p>
@@ -112,12 +121,12 @@ class TCWCS_Admin {
 			$coupon = new WC_Coupon( $coupon_id );
 		}
 
-		$length = isset( $_POST[ TCWCS_META_TRIAL_LENGTH ] )
-			? absint( wp_unslash( $_POST[ TCWCS_META_TRIAL_LENGTH ] ) )
+		$length = isset( $_POST[ WCST_TRIAL_META_LENGTH ] )
+			? absint( wp_unslash( $_POST[ WCST_TRIAL_META_LENGTH ] ) )
 			: 0;
 
-		$period = isset( $_POST[ TCWCS_META_TRIAL_PERIOD ] )
-			? sanitize_key( wp_unslash( $_POST[ TCWCS_META_TRIAL_PERIOD ] ) )
+		$period = isset( $_POST[ WCST_TRIAL_META_PERIOD ] )
+			? sanitize_key( wp_unslash( $_POST[ WCST_TRIAL_META_PERIOD ] ) )
 			: 'day';
 
 		$valid_periods = function_exists( 'wcs_get_available_time_periods' )
@@ -127,18 +136,18 @@ class TCWCS_Admin {
 			$period = 'day';
 		}
 
-		$coupon->update_meta_data( TCWCS_META_TRIAL_LENGTH, $length );
-		$coupon->update_meta_data( TCWCS_META_TRIAL_PERIOD, $period );
+		$coupon->update_meta_data( WCST_TRIAL_META_LENGTH, $length );
+		$coupon->update_meta_data( WCST_TRIAL_META_PERIOD, $period );
 		$coupon->save();
 	}
 
 	/**
 	 * Tell WooCommerce Subscriptions that this coupon type is allowed on
 	 * subscription carts. Returning false short-circuits the "invalid type"
-	 * error WCS would otherwise raise for unknown types.
+	 * error WCS would otherwise raise for unknown coupon types.
 	 */
 	public function bypass_wcs_validation( $is_valid_type, $coupon, $original_valid ) {
-		if ( $coupon instanceof WC_Coupon && $coupon->is_type( TCWCS_COUPON_TYPE ) ) {
+		if ( $coupon instanceof WC_Coupon && $coupon->is_type( WCST_TRIAL_COUPON_TYPE ) ) {
 			return false;
 		}
 		return $is_valid_type;
