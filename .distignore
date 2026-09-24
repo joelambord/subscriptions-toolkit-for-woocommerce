@@ -1,0 +1,38 @@
+# Files and directories excluded from the WordPress.org SVN trunk during
+# deployment. Matched against paths relative to the repo root. Directory
+# names are matched anywhere in the tree.
+#
+# See: https://github.com/10up/action-wordpress-plugin-deploy
+
+# Version control
+.git
+.gitattributes
+.gitignore
+.github
+
+# Development tooling / editors
+.DS_Store
+.editorconfig
+.vscode
+.idea
+
+# Dependency directories that don't ship
+node_modules
+vendor
+
+# Repo-only docs and metadata (readme.txt is what WP.org reads, not README.md)
+README.md
+CONTRIBUTING.md
+CHANGELOG.md
+
+# Build outputs
+*.zip
+*.log
+
+# Plugin-specific: .wordpress-org/ holds the WP.org repository assets
+# (banners, icons, screenshots). It is uploaded to the SVN /assets/
+# directory by the deploy action, not into /trunk/.
+.wordpress-org
+
+# This file itself
+.distignore

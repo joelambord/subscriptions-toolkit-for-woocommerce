@@ -1,0 +1,32 @@
+name: Update WordPress.org assets
+
+# Assets-only deploy: pushes changes under .wordpress-org/ (banner, icon,
+# screenshots) and the readme.txt to the WordPress.org SVN /assets/ and
+# /trunk/ folders WITHOUT bumping a version or creating a new /tags/ entry.
+#
+# Use this when you want to refresh the store page (new banner, updated
+# description, updated screenshots) between plugin releases.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.wordpress-org/**'
+      - 'readme.txt'
+  workflow_dispatch:
+
+jobs:
+  assets:
+    name: Push assets + readme to WordPress.org
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: WordPress.org Plugin Readme/Assets Update
+        uses: 10up/action-wordpress-plugin-asset-update@stable
+        env:
+          SVN_USERNAME: ${{ secrets.WORDPRESS_ORG_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.WORDPRESS_ORG_PASSWORD }}
+          SLUG: subscriptions-toolkit-for-woocommerce

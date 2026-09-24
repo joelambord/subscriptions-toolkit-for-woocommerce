@@ -1,0 +1,48 @@
+name: Deploy to WordPress.org
+
+# Full release deploy: triggered by pushing a semver tag (v1.2.3 / 1.2.3),
+# or manually from the Actions tab. The workflow pushes /trunk/ AND a new
+# /tags/<version>/ folder to https://plugins.svn.wordpress.org/subscriptions-toolkit-for-woocommerce/,
+# and updates the /assets/ folder from .wordpress-org/.
+#
+# The tag name and the "Stable tag" line in readme.txt should match the
+# version being released. A mismatch will make the action fail loudly rather
+# than ship a broken release.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   WORDPRESS_ORG_USERNAME  – wordpress.org login (joelambord)
+#   WORDPRESS_ORG_PASSWORD  – wordpress.org password OR an SVN-scoped
+#                             application password (recommended)
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - '[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+
+jobs:
+  release:
+    name: Push tag to WordPress.org SVN
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # needed to attach the built ZIP to the GitHub Release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: WordPress Plugin Deploy
+        id: deploy
+        uses: 10up/action-wordpress-plugin-deploy@stable
+        with:
+          generate-zip: true
+        env:
+          SVN_USERNAME: ${{ secrets.WORDPRESS_ORG_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.WORDPRESS_ORG_PASSWORD }}
+          SLUG: subscriptions-toolkit-for-woocommerce
+
+      - name: Attach built ZIP to the GitHub Release
+        if: steps.deploy.outputs.zip-path
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.deploy.outputs.zip-path }}
