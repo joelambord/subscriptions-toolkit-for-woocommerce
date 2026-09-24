@@ -17,6 +17,7 @@ class TCWCS_Cart {
 		add_filter( 'woocommerce_coupon_error',            [ $this, 'custom_error_message' ], 10, 3 );
 		add_filter( 'woocommerce_cart_totals_coupon_label',[ $this, 'cart_coupon_label' ], 10, 2 );
 		add_filter( 'woocommerce_coupon_discount_amount_html', [ $this, 'cart_discount_amount_html' ], 10, 2 );
+		add_filter( 'woocommerce_subscriptions_product_price_string', [ $this, 'fix_german_price_string' ], 20, 3 );
 	}
 
 	/**
@@ -143,18 +144,16 @@ class TCWCS_Cart {
 	}
 
 	/**
-	 * Translated, pluralized "10 days" / "1 month" using WooCommerce
-	 * Subscriptions' own translation catalog so the output matches the
-	 * rest of the checkout UI (including German).
+	 * Return a translated, pluralized period string like "15 days" / "1 month".
+	 *
+	 * We intentionally do NOT reuse wcs_get_subscription_period_strings():
+	 * the German WooCommerce Subscriptions catalog translates the plural
+	 * templates without the "%s " placeholder ("Tage" instead of "%s Tage"),
+	 * which produced "Tag" in the cart totals with no number. Formatting
+	 * with our own text domain avoids that gotcha and lets us ship the
+	 * translations bundled with this plugin.
 	 */
 	private function format_trial_period( $length, $period ) {
-		if ( function_exists( 'wcs_get_subscription_period_strings' ) ) {
-			$strings = wcs_get_subscription_period_strings( $length, $period );
-			if ( ! empty( $strings ) ) {
-				return $strings;
-			}
-		}
-
 		switch ( $period ) {
 			case 'day':
 				/* translators: %d: number of days */
@@ -171,5 +170,39 @@ class TCWCS_Cart {
 			default:
 				return $length . ' ' . $period;
 		}
+	}
+
+	/**
+	 * WooCommerce Subscriptions' German translation renders the trial phrase
+	 * as "mit ein 15-Tage kostenlose Testphase", which is grammatically
+	 * broken (wrong article gender, wrong case ending). Rewrite it to the
+	 * correct dative form: "mit 15 Tagen kostenloser Testphase".
+	 *
+	 * Applied only for German locales so English and other languages are
+	 * untouched.
+	 */
+	public function fix_german_price_string( $string, $product = null, $include = null ) {
+		if ( ! is_string( $string ) || '' === $string ) {
+			return $string;
+		}
+		$locale = function_exists( 'determine_locale' ) ? determine_locale() : get_locale();
+		if ( 0 !== strpos( (string) $locale, 'de' ) ) {
+			return $string;
+		}
+
+		return preg_replace_callback(
+			'/mit\s+ein\s+(\d+)-(Tag|Tage|Woche|Wochen|Monat|Monate|Jahr|Jahre)\s+kostenlose[nrs]?\s+Testphase/u',
+			static function ( $m ) {
+				$dative_plural = [
+					'Tag'    => 'Tag',    'Tage'   => 'Tagen',
+					'Woche'  => 'Woche',  'Wochen' => 'Wochen',
+					'Monat'  => 'Monat',  'Monate' => 'Monaten',
+					'Jahr'   => 'Jahr',   'Jahre'  => 'Jahren',
+				];
+				$unit = $dative_plural[ $m[2] ] ?? $m[2];
+				return 'mit ' . (int) $m[1] . ' ' . $unit . ' kostenloser Testphase';
+			},
+			$string
+		);
 	}
 }
