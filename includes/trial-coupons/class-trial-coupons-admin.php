@@ -27,7 +27,7 @@ class WCST_Trial_Coupons_Admin {
 	 * automatically.
 	 */
 	public function register_discount_type( $types ) {
-		$types[ WCST_TRIAL_COUPON_TYPE ] = __( 'Subscription Trial', 'wc-subs-toolkit' );
+		$types[ WCST_TRIAL_COUPON_TYPE ] = __( 'Subscription Trial', 'subscriptions-toolkit-for-woocommerce' );
 		return $types;
 	}
 
@@ -62,15 +62,15 @@ class WCST_Trial_Coupons_Admin {
 		$periods = function_exists( 'wcs_get_available_time_periods' )
 			? wcs_get_available_time_periods()
 			: [
-				'day'   => __( 'day', 'wc-subs-toolkit' ),
-				'week'  => __( 'week', 'wc-subs-toolkit' ),
-				'month' => __( 'month', 'wc-subs-toolkit' ),
-				'year'  => __( 'year', 'wc-subs-toolkit' ),
+				'day'   => __( 'day', 'subscriptions-toolkit-for-woocommerce' ),
+				'week'  => __( 'week', 'subscriptions-toolkit-for-woocommerce' ),
+				'month' => __( 'month', 'subscriptions-toolkit-for-woocommerce' ),
+				'year'  => __( 'year', 'subscriptions-toolkit-for-woocommerce' ),
 			];
 		?>
 		<p class="form-field subscription_coupon_trial_length_field">
 			<label for="<?php echo esc_attr( WCST_TRIAL_META_LENGTH ); ?>">
-				<?php esc_html_e( 'Free trial', 'wc-subs-toolkit' ); ?>
+				<?php esc_html_e( 'Free trial', 'subscriptions-toolkit-for-woocommerce' ); ?>
 			</label>
 			<span class="wrap">
 				<input type="number"
@@ -83,7 +83,7 @@ class WCST_Trial_Coupons_Admin {
 				       value="<?php echo esc_attr( $length ); ?>" />
 
 				<label for="<?php echo esc_attr( WCST_TRIAL_META_PERIOD ); ?>" style="display:none" class="wcs_hidden_label">
-					<?php esc_html_e( 'Subscription trial period', 'wc-subs-toolkit' ); ?>
+					<?php esc_html_e( 'Subscription trial period', 'subscriptions-toolkit-for-woocommerce' ); ?>
 				</label>
 
 				<select id="<?php echo esc_attr( WCST_TRIAL_META_PERIOD ); ?>"
@@ -98,7 +98,7 @@ class WCST_Trial_Coupons_Admin {
 			</span>
 			<?php
 			if ( function_exists( 'wcs_help_tip' ) ) {
-				echo wcs_help_tip( esc_html__( 'Length of the free trial granted when this coupon is applied. The customer pays 0.00 at checkout and the first recurring payment is delayed by this period.', 'wc-subs-toolkit' ) );
+				echo wcs_help_tip( esc_html__( 'Length of the free trial granted when this coupon is applied. The customer pays 0.00 at checkout and the first recurring payment is delayed by this period.', 'subscriptions-toolkit-for-woocommerce' ) );
 			}
 			?>
 		</p>

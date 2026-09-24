@@ -5,7 +5,7 @@
  * Version:     1.1.4
  * Author:      Joël Ambord
  * Author URI:  https://profiles.wordpress.org/joelambord/
- * Text Domain: wc-subs-toolkit
+ * Text Domain: subscriptions-toolkit-for-woocommerce
  * Domain Path: /languages
  * Requires at least: 6.2
  * Requires PHP: 7.4
@@ -42,7 +42,7 @@ require_once WCST_PATH . 'includes/trial-coupons/class-trial-coupons-cart.php';
 
 add_action( 'plugins_loaded', 'wcst_bootstrap' );
 function wcst_bootstrap() {
-	load_plugin_textdomain( 'wc-subs-toolkit', false, dirname( plugin_basename( WCST_FILE ) ) . '/languages' );
+	load_plugin_textdomain( 'subscriptions-toolkit-for-woocommerce', false, dirname( plugin_basename( WCST_FILE ) ) . '/languages' );
 
 	if ( ! class_exists( 'WooCommerce' ) || ! class_exists( 'WC_Subscriptions' ) ) {
 		add_action( 'admin_notices', 'wcst_missing_dependency_notice' );
@@ -61,7 +61,7 @@ function wcst_missing_dependency_notice() {
 		return;
 	}
 	echo '<div class="notice notice-error"><p>';
-	echo esc_html__( 'Subscriptions Toolkit for WooCommerce requires WooCommerce and WooCommerce Subscriptions to be active.', 'wc-subs-toolkit' );
+	echo esc_html__( 'Subscriptions Toolkit for WooCommerce requires WooCommerce and WooCommerce Subscriptions to be active.', 'subscriptions-toolkit-for-woocommerce' );
 	echo '</p></div>';
 }
 

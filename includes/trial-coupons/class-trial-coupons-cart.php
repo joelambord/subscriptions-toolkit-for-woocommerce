@@ -352,7 +352,7 @@ class WCST_Trial_Coupons_Cart {
 
 	public function custom_error_message( $err, $err_code, $coupon ) {
 		if ( isset( $coupon->error_code ) && 'wcst_no_subscription_in_cart' === $coupon->error_code ) {
-			return __( 'This coupon can only be applied when the cart contains a subscription product.', 'wc-subs-toolkit' );
+			return __( 'This coupon can only be applied when the cart contains a subscription product.', 'subscriptions-toolkit-for-woocommerce' );
 		}
 		return $err;
 	}
@@ -362,7 +362,7 @@ class WCST_Trial_Coupons_Cart {
 	 */
 	public function cart_coupon_label( $label, $coupon ) {
 		if ( $coupon instanceof WC_Coupon && $coupon->is_type( WCST_TRIAL_COUPON_TYPE ) ) {
-			return esc_html__( 'Free trial', 'wc-subs-toolkit' ) . ' (' . esc_html( strtoupper( $coupon->get_code() ) ) . ')';
+			return esc_html__( 'Free trial', 'subscriptions-toolkit-for-woocommerce' ) . ' (' . esc_html( strtoupper( $coupon->get_code() ) ) . ')';
 		}
 		return $label;
 	}
@@ -380,7 +380,7 @@ class WCST_Trial_Coupons_Cart {
 		$period = (string) $coupon->get_meta( WCST_TRIAL_META_PERIOD );
 
 		if ( $length <= 0 || '' === $period ) {
-			return esc_html__( 'Free trial period', 'wc-subs-toolkit' );
+			return esc_html__( 'Free trial period', 'subscriptions-toolkit-for-woocommerce' );
 		}
 
 		return esc_html( $this->format_trial_period( $length, $period ) );
@@ -412,16 +412,16 @@ class WCST_Trial_Coupons_Cart {
 		switch ( $period ) {
 			case 'day':
 				/* translators: %d: number of days */
-				return sprintf( _n( '%d day', '%d days', $length, 'wc-subs-toolkit' ), $length );
+				return sprintf( _n( '%d day', '%d days', $length, 'subscriptions-toolkit-for-woocommerce' ), $length );
 			case 'week':
 				/* translators: %d: number of weeks */
-				return sprintf( _n( '%d week', '%d weeks', $length, 'wc-subs-toolkit' ), $length );
+				return sprintf( _n( '%d week', '%d weeks', $length, 'subscriptions-toolkit-for-woocommerce' ), $length );
 			case 'month':
 				/* translators: %d: number of months */
-				return sprintf( _n( '%d month', '%d months', $length, 'wc-subs-toolkit' ), $length );
+				return sprintf( _n( '%d month', '%d months', $length, 'subscriptions-toolkit-for-woocommerce' ), $length );
 			case 'year':
 				/* translators: %d: number of years */
-				return sprintf( _n( '%d year', '%d years', $length, 'wc-subs-toolkit' ), $length );
+				return sprintf( _n( '%d year', '%d years', $length, 'subscriptions-toolkit-for-woocommerce' ), $length );
 			default:
 				return $length . ' ' . $period;
 		}
