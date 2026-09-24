@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Subscriptions Toolkit for WooCommerce
  * Description: A toolkit of enhancements for WooCommerce Subscriptions. First module: a "Subscription Trial" coupon type that grants a configurable free trial (days / weeks / months / years) on subscription products. Compatible with Smart Coupons for WooCommerce Pro (WebToffee). Further modules (retention, dunning, ...) will be added over time.
- * Version:     1.1.1
+ * Version:     1.1.2
  * Author:      Joël Ambord
  * Author URI:  https://profiles.wordpress.org/joelambord/
  * Text Domain: wc-subs-toolkit
@@ -19,7 +19,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'WCST_VERSION', '1.1.1' );
+define( 'WCST_VERSION', '1.1.2' );
 define( 'WCST_FILE', __FILE__ );
 define( 'WCST_PATH', plugin_dir_path( __FILE__ ) );
 define( 'WCST_URL',  plugin_dir_url( __FILE__ ) );

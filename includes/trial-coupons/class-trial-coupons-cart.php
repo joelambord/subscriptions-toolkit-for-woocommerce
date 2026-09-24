@@ -26,8 +26,10 @@ class WCST_Trial_Coupons_Cart {
 		 * recurring-cart rebuild, so there is no "gap" where the trial
 		 * could be lost.
 		 */
-		add_filter( 'woocommerce_subscriptions_product_trial_length', [ $this, 'filter_trial_length' ], 10, 2 );
-		add_filter( 'woocommerce_subscriptions_product_trial_period', [ $this, 'filter_trial_period' ], 10, 2 );
+		// Priority 999: we want the LAST word on the trial value, after any
+		// WCS-internal filter that might otherwise reset it back to 0.
+		add_filter( 'woocommerce_subscriptions_product_trial_length', [ $this, 'filter_trial_length' ], 999, 2 );
+		add_filter( 'woocommerce_subscriptions_product_trial_period', [ $this, 'filter_trial_period' ], 999, 2 );
 
 		/*
 		 * Secondary defense: still write the trial onto cart-item product
@@ -48,8 +50,7 @@ class WCST_Trial_Coupons_Cart {
 	/**
 	 * Filter WCS's product trial-length getter. Returns the coupon's trial
 	 * length when a trial coupon is currently applied and the product is a
-	 * subscription that lives in the current cart (or is being processed
-	 * for it).
+	 * subscription in the current cart.
 	 *
 	 * @param int|string      $length
 	 * @param WC_Product|null $product
@@ -60,7 +61,11 @@ class WCST_Trial_Coupons_Cart {
 			return $length;
 		}
 		list( $coupon_length ) = $this->get_active_trial_from_session();
-		return $coupon_length > 0 ? $coupon_length : $length;
+		if ( $coupon_length > 0 ) {
+			$this->debug( 'filter_trial_length override: product=' . $product->get_id() . ' old=' . $length . ' new=' . $coupon_length );
+			return $coupon_length;
+		}
+		return $length;
 	}
 
 	/**
@@ -75,19 +80,48 @@ class WCST_Trial_Coupons_Cart {
 			return $period;
 		}
 		list( , $coupon_period ) = $this->get_active_trial_from_session();
-		return '' !== $coupon_period ? $coupon_period : $period;
+		if ( '' !== $coupon_period ) {
+			return $coupon_period;
+		}
+		return $period;
+	}
+
+	/**
+	 * Log a message via WooCommerce's logger, but only when either the
+	 * global WCST_DEBUG constant is set to true or WP_DEBUG is on. Nothing
+	 * is written otherwise, so the store's log directory stays quiet on
+	 * production. Enable temporarily by adding `define( 'WCST_DEBUG', true );`
+	 * to wp-config.php.
+	 */
+	private function debug( $message ) {
+		if ( ! ( defined( 'WCST_DEBUG' ) && WCST_DEBUG ) && ! ( defined( 'WP_DEBUG' ) && WP_DEBUG ) ) {
+			return;
+		}
+		if ( ! function_exists( 'wc_get_logger' ) ) {
+			return;
+		}
+		wc_get_logger()->info( (string) $message, [ 'source' => 'wcst-trial-coupons' ] );
 	}
 
 	/**
 	 * Decide whether to override the trial for the given product on the
-	 * current request. Guarded to avoid leaking trial values into product
-	 * archive pages or admin screens where no cart context exists.
+	 * current request.
+	 *
+	 * We deliberately do NOT verify that the product is currently in the
+	 * cart: WCS asks for trial length very early in the request lifecycle
+	 * (during cart hydration itself), when neither WC()->cart nor the
+	 * session snapshot are fully populated yet. That timing hole caused
+	 * every previous "in-cart" guard to silently return false and the
+	 * override to be skipped. The trial coupon can only be applied when a
+	 * subscription is in the cart to begin with (see
+	 * validate_cart_has_subscription()), so the mere presence of the
+	 * coupon in the session is a sufficient signal.
 	 */
 	private function should_override_trial_for( $product ) {
 		if ( ! $product instanceof WC_Product ) {
 			return false;
 		}
-		// Don't tamper inside wp-admin except during front-end AJAX (add-to-cart, cart update, ...).
+		// Don't tamper inside wp-admin except during front-end AJAX.
 		if ( is_admin() && ! wp_doing_ajax() ) {
 			return false;
 		}
@@ -95,72 +129,43 @@ class WCST_Trial_Coupons_Cart {
 			return false;
 		}
 		list( $length ) = $this->get_active_trial_from_session();
-		if ( $length <= 0 ) {
-			return false;
-		}
-		return $this->is_product_in_cart_or_session( $product );
-	}
-
-	/**
-	 * True when the product id (or, for variations, its parent id) matches
-	 * a cart item currently held either by WC()->cart or in the session
-	 * cart snapshot. Falling back to the session cart is important because
-	 * WCS may resolve trial values before WC()->cart is fully hydrated on
-	 * a request.
-	 */
-	private function is_product_in_cart_or_session( $product ) {
-		$target = (int) $product->get_id();
-		$parent = $product instanceof WC_Product_Variation ? (int) $product->get_parent_id() : 0;
-
-		if ( WC()->cart instanceof WC_Cart ) {
-			foreach ( WC()->cart->cart_contents as $item ) {
-				if ( empty( $item['data'] ) || ! $item['data'] instanceof WC_Product ) {
-					continue;
-				}
-				$item_id = (int) $item['data']->get_id();
-				if ( $item_id === $target || ( $parent && $item_id === $parent ) ) {
-					return true;
-				}
-			}
-		}
-
-		if ( WC()->session instanceof WC_Session ) {
-			$snapshot = (array) WC()->session->get( 'cart', [] );
-			foreach ( $snapshot as $item ) {
-				$pid = (int) ( $item['product_id']   ?? 0 );
-				$vid = (int) ( $item['variation_id'] ?? 0 );
-				if ( $target === $vid || $target === $pid || ( $parent && $parent === $pid ) ) {
-					return true;
-				}
-			}
-		}
-
-		return false;
+		return $length > 0;
 	}
 
 	/**
 	 * Per-request memoized lookup of [ length, period ] for the trial
-	 * coupon currently applied in the session. Avoids repeating the
-	 * DB query for every product getter call in a request.
+	 * coupon currently applied. Reads from WC()->cart first (in-memory,
+	 * always current within a request) and falls back to the session
+	 * store — either can lead the other depending on the request phase.
+	 *
+	 * The cache is only stored for a successful hit; an empty result is
+	 * never cached so a later call in the same request can still find
+	 * the coupon once cart / session hydration completes.
 	 *
 	 * @return array{0:int,1:string}
 	 */
 	private function get_active_trial_from_session() {
 		static $cache = null;
-		if ( null !== $cache ) {
+		if ( is_array( $cache ) && $cache[0] > 0 ) {
 			return $cache;
 		}
-		if ( ! WC()->session instanceof WC_Session ) {
-			$cache = [ 0, '' ];
-			return $cache;
+
+		$applied = [];
+		if ( WC()->cart instanceof WC_Cart ) {
+			$applied = (array) WC()->cart->get_applied_coupons();
 		}
-		$applied = (array) WC()->session->get( 'applied_coupons', [] );
+		if ( empty( $applied ) && WC()->session instanceof WC_Session ) {
+			$applied = (array) WC()->session->get( 'applied_coupons', [] );
+		}
 		if ( empty( $applied ) ) {
-			$cache = [ 0, '' ];
-			return $cache;
+			return [ 0, '' ];
 		}
-		$cache = $this->find_trial_from_codes( $applied );
-		return $cache;
+
+		$found = $this->find_trial_from_codes( $applied );
+		if ( $found[0] > 0 ) {
+			$cache = $found;
+		}
+		return $found;
 	}
 
 	/**
