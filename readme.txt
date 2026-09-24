@@ -6,7 +6,7 @@ Tested up to: 6.6
 Requires PHP: 7.4
 WC requires at least: 8.0
 WC tested up to: 10.2
-Stable tag: 1.0.1
+Stable tag: 1.0.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -37,6 +37,11 @@ Other coupons extensions: Compatible with many other plugins like Smart Coupons 
 5. WooCommerce Subscriptions recalculates: initial total becomes 0.00 and the renewal date is pushed out by the trial length.
 
 == Changelog ==
+
+= 1.0.2 =
+* Fix: trial was lost from the checkout after a failed or cancelled payment. The applied coupon still appeared in the totals but the subscription was recalculated at full price and the renewal date reverted to today + one period. The trial is now re-injected during cart session rehydration (`woocommerce_get_cart_item_from_session`) and a one-shot totals recalculation is triggered after the cart is loaded, so the checkout retry shows 0.00 today and the correct pushed-out renewal date.
+* Trial application priority lowered to 5 on `woocommerce_before_calculate_totals` so it runs before WCS's own price filters, not after.
+* Coupon detection now falls back to reading the trial meta directly when the discount type check fails — some WCS code paths hydrate coupons without their discount_type initialised.
 
 = 1.0.1 =
 * German translation bundled (de_DE, de_CH, de_AT) so "Free trial", coupon labels and error messages are localized out of the box.

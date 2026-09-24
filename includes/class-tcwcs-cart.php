@@ -12,10 +12,24 @@ defined( 'ABSPATH' ) || exit;
 class TCWCS_Cart {
 
 	public function init() {
-		add_action( 'woocommerce_before_calculate_totals', [ $this, 'apply_trial_to_subscriptions' ], 15, 1 );
-		add_filter( 'woocommerce_coupon_is_valid',         [ $this, 'validate_cart_has_subscription' ], 10, 2 );
-		add_filter( 'woocommerce_coupon_error',            [ $this, 'custom_error_message' ], 10, 3 );
-		add_filter( 'woocommerce_cart_totals_coupon_label',[ $this, 'cart_coupon_label' ], 10, 2 );
+		// Apply trial to cart items. Priority 5 runs before WCS's own price filters.
+		add_action( 'woocommerce_before_calculate_totals',     [ $this, 'apply_trial_to_subscriptions' ], 5, 1 );
+
+		// Session rehydration: cart items are re-created from session on every
+		// request with fresh product clones. Inject trial meta right at that
+		// point so the price string / order review render correctly even before
+		// calculate_totals() runs. This is what fixes the "coupon looks applied
+		// but trial is gone" case after a failed / cancelled payment.
+		add_filter( 'woocommerce_get_cart_item_from_session',  [ $this, 'apply_trial_on_session_load' ], 20, 3 );
+
+		// After the cart is fully loaded from session, force a fresh totals
+		// calculation so the recurring cart (renewal date) is rebuilt with
+		// the trial we just injected.
+		add_action( 'woocommerce_cart_loaded_from_session',    [ $this, 'recalculate_after_session_load' ], 20 );
+
+		add_filter( 'woocommerce_coupon_is_valid',             [ $this, 'validate_cart_has_subscription' ], 10, 2 );
+		add_filter( 'woocommerce_coupon_error',                [ $this, 'custom_error_message' ], 10, 3 );
+		add_filter( 'woocommerce_cart_totals_coupon_label',    [ $this, 'cart_coupon_label' ], 10, 2 );
 		add_filter( 'woocommerce_coupon_discount_amount_html', [ $this, 'cart_discount_amount_html' ], 10, 2 );
 		add_filter( 'woocommerce_subscriptions_product_price_string', [ $this, 'fix_german_price_string' ], 20, 3 );
 	}
@@ -40,24 +54,8 @@ class TCWCS_Cart {
 			return;
 		}
 
-		$trial_length = 0;
-		$trial_period = '';
-
-		// Later trial coupons win; typical stores only allow one anyway.
-		foreach ( $applied as $code ) {
-			$coupon = new WC_Coupon( $code );
-			if ( ! $coupon->is_type( TCWCS_COUPON_TYPE ) ) {
-				continue;
-			}
-			$length = (int) $coupon->get_meta( TCWCS_META_TRIAL_LENGTH );
-			$period = (string) $coupon->get_meta( TCWCS_META_TRIAL_PERIOD );
-			if ( $length > 0 && '' !== $period ) {
-				$trial_length = $length;
-				$trial_period = $period;
-			}
-		}
-
-		if ( $trial_length <= 0 ) {
+		list( $trial_length, $trial_period ) = $this->find_trial_from_codes( $applied );
+		if ( $trial_length <= 0 || '' === $trial_period ) {
 			return;
 		}
 
@@ -65,13 +63,98 @@ class TCWCS_Cart {
 			if ( empty( $cart_item['data'] ) ) {
 				continue;
 			}
-			$product = $cart_item['data'];
-			if ( ! $this->is_subscription_product( $product ) ) {
+			$this->apply_trial_to_product( $cart_item['data'], $trial_length, $trial_period );
+		}
+	}
+
+	/**
+	 * Runs for every cart item as WooCommerce rebuilds the cart from session
+	 * (on every request). The applied coupons are read directly from the
+	 * session because at this point WC()->cart is not fully populated yet.
+	 *
+	 * Without this the order-review section of the checkout page — which is
+	 * rendered before woocommerce_before_calculate_totals fires in some
+	 * flows, notably after a failed payment attempt — would show the full
+	 * price and no trial, even though the coupon still appears in the totals.
+	 */
+	public function apply_trial_on_session_load( $cart_item, $values, $key ) {
+		$applied = ( WC()->session instanceof WC_Session )
+			? (array) WC()->session->get( 'applied_coupons', [] )
+			: [];
+		if ( empty( $applied ) ) {
+			return $cart_item;
+		}
+		list( $trial_length, $trial_period ) = $this->find_trial_from_codes( $applied );
+		if ( $trial_length <= 0 || '' === $trial_period ) {
+			return $cart_item;
+		}
+
+		if ( ! empty( $cart_item['data'] ) ) {
+			$this->apply_trial_to_product( $cart_item['data'], $trial_length, $trial_period );
+		}
+		return $cart_item;
+	}
+
+	/**
+	 * After session load, trigger a totals recalculation so WooCommerce
+	 * Subscriptions rebuilds the recurring cart with the trial we just
+	 * injected. Guarded to only fire when a trial coupon is actually
+	 * applied so we don't slow down every request.
+	 */
+	public function recalculate_after_session_load( $cart ) {
+		if ( ! $cart instanceof WC_Cart ) {
+			return;
+		}
+		$applied = $cart->get_applied_coupons();
+		if ( empty( $applied ) ) {
+			return;
+		}
+		list( $length, $period ) = $this->find_trial_from_codes( $applied );
+		if ( $length > 0 && '' !== $period ) {
+			$cart->calculate_totals();
+		}
+	}
+
+	/**
+	 * Scan a list of coupon codes; return [ length, period ] of the last
+	 * subscription_trial coupon found (later ones win — typical stores
+	 * only allow one anyway). Falls back to reading meta directly when
+	 * the discount_type check fails, because on checkout retry WCS can
+	 * rehydrate a coupon whose type is not yet initialised.
+	 *
+	 * @return array{0:int,1:string}
+	 */
+	private function find_trial_from_codes( array $codes ) {
+		$trial_length = 0;
+		$trial_period = '';
+
+		foreach ( $codes as $code ) {
+			$coupon = new WC_Coupon( $code );
+			$is_trial = $coupon->is_type( TCWCS_COUPON_TYPE );
+
+			$length = (int) $coupon->get_meta( TCWCS_META_TRIAL_LENGTH );
+			$period = (string) $coupon->get_meta( TCWCS_META_TRIAL_PERIOD );
+
+			// If discount_type check missed but our meta is set, still treat
+			// it as a trial coupon.
+			if ( ! $is_trial && $length <= 0 ) {
 				continue;
 			}
-			$product->update_meta_data( '_subscription_trial_length', $trial_length );
-			$product->update_meta_data( '_subscription_trial_period', $trial_period );
+			if ( $length > 0 && '' !== $period ) {
+				$trial_length = $length;
+				$trial_period = $period;
+			}
 		}
+
+		return [ $trial_length, $trial_period ];
+	}
+
+	private function apply_trial_to_product( $product, $length, $period ) {
+		if ( ! $this->is_subscription_product( $product ) ) {
+			return;
+		}
+		$product->update_meta_data( '_subscription_trial_length', $length );
+		$product->update_meta_data( '_subscription_trial_period', $period );
 	}
 
 	/**
@@ -135,7 +218,7 @@ class TCWCS_Cart {
 		if ( ! $product instanceof WC_Product ) {
 			return false;
 		}
-		if ( function_exists( 'WC_Subscriptions_Product' ) || class_exists( 'WC_Subscriptions_Product' ) ) {
+		if ( class_exists( 'WC_Subscriptions_Product' ) ) {
 			if ( WC_Subscriptions_Product::is_subscription( $product ) ) {
 				return true;
 			}

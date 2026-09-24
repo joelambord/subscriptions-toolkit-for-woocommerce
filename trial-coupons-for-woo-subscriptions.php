@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Trial Coupons for WooCommerce Subscriptions
  * Description: Adds a "Subscription Trial" coupon type that grants a configurable free trial (days / weeks / months / years) on WooCommerce Subscription products. Compatible with all payment gateways and many coupon plugins, including Smart Coupons for WooCommerce Pro (WebToffee).
- * Version:     1.0.1
+ * Version:     1.0.2
  * Author:      Joël Ambord
  * Author URI:  https://profiles.wordpress.org/joelambord/
  * Text Domain: trial-coupons-wcs
@@ -17,7 +17,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'TCWCS_VERSION', '1.0.1' );
+define( 'TCWCS_VERSION', '1.0.2' );
 define( 'TCWCS_FILE', __FILE__ );
 define( 'TCWCS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'TCWCS_URL',  plugin_dir_url( __FILE__ ) );
