@@ -281,17 +281,6 @@ class WCST_Trial_Coupons_Cart {
 
 				$coupon_id = function_exists( 'wc_get_coupon_id_by_code' ) ? wc_get_coupon_id_by_code( $code ) : 0;
 
-				if ( ! $coupon_id ) {
-					// Fallback direct query — some cache layers can make
-					// wc_get_coupon_id_by_code() return 0 even when the post
-					// exists. This is cheap because coupons are rare.
-					global $wpdb;
-					$coupon_id = (int) $wpdb->get_var( $wpdb->prepare(
-						"SELECT ID FROM {$wpdb->posts} WHERE post_type = 'shop_coupon' AND post_status = 'publish' AND post_title = %s LIMIT 1",
-						$code
-					) );
-				}
-
 				if ( $coupon_id > 0 ) {
 					$type   = (string) get_post_meta( $coupon_id, 'discount_type', true );
 					$length = (int) get_post_meta( $coupon_id, WCST_TRIAL_META_LENGTH, true );

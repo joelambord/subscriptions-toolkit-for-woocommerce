@@ -42,7 +42,10 @@ require_once WCST_PATH . 'includes/trial-coupons/class-trial-coupons-cart.php';
 
 add_action( 'plugins_loaded', 'wcst_bootstrap' );
 function wcst_bootstrap() {
-	load_plugin_textdomain( 'subscriptions-toolkit-for-woocommerce', false, dirname( plugin_basename( WCST_FILE ) ) . '/languages' );
+	// Translations are auto-loaded by WordPress since 4.6, both from
+	// wordpress.org and from the plugin's own /languages/ directory
+	// (see the Domain Path plugin header above). No load_plugin_textdomain()
+	// call needed.
 
 	if ( ! class_exists( 'WooCommerce' ) || ! class_exists( 'WC_Subscriptions' ) ) {
 		add_action( 'admin_notices', 'wcst_missing_dependency_notice' );

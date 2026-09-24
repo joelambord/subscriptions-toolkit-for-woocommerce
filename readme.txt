@@ -10,7 +10,7 @@ Stable tag: 1.1.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-A growing toolkit of enhancements for WooCommerce Subscriptions. Ships with a "Subscription Trial" coupon type today; retention and other subscription-flow improvements are planned.
+A modular toolkit for WooCommerce Subscriptions. Ships with a Subscription Trial coupon type; retention and further modules planned.
 
 == Description ==
 

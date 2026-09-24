@@ -98,7 +98,10 @@ class WCST_Trial_Coupons_Admin {
 			</span>
 			<?php
 			if ( function_exists( 'wcs_help_tip' ) ) {
-				echo wcs_help_tip( esc_html__( 'Length of the free trial granted when this coupon is applied. The customer pays 0.00 at checkout and the first recurring payment is delayed by this period.', 'subscriptions-toolkit-for-woocommerce' ) );
+				// wcs_help_tip() (via wc_help_tip()) returns markup that is
+				// already escaped for the tooltip attribute + label output.
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				echo wcs_help_tip( __( 'Length of the free trial granted when this coupon is applied. The customer pays 0.00 at checkout and the first recurring payment is delayed by this period.', 'subscriptions-toolkit-for-woocommerce' ) );
 			}
 			?>
 		</p>
@@ -110,7 +113,10 @@ class WCST_Trial_Coupons_Admin {
 	 * Uses update_meta_data so repeated saves cannot duplicate rows.
 	 */
 	public function save_fields( $coupon_id, $coupon = null ) {
-		if ( empty( $_POST['woocommerce_meta_nonce'] ) || ! wp_verify_nonce( wp_unslash( $_POST['woocommerce_meta_nonce'] ), 'woocommerce_save_data' ) ) {
+		$nonce = isset( $_POST['woocommerce_meta_nonce'] )
+			? sanitize_text_field( wp_unslash( $_POST['woocommerce_meta_nonce'] ) )
+			: '';
+		if ( '' === $nonce || ! wp_verify_nonce( $nonce, 'woocommerce_save_data' ) ) {
 			return;
 		}
 		if ( ! current_user_can( 'manage_woocommerce' ) ) {
