@@ -6,7 +6,7 @@ Tested up to: 6.6
 Requires PHP: 7.4
 WC requires at least: 8.0
 WC tested up to: 10.2
-Stable tag: 1.1.3
+Stable tag: 1.1.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,6 +44,11 @@ Other coupon extensions: Compatible with many other plugins like Smart Coupons f
 5. WooCommerce Subscriptions recalculates: initial total becomes 0.00 and the renewal date is pushed out by the trial length.
 
 == Changelog ==
+
+= 1.1.4 =
+* Fix: coupon meta lookup now reads directly from post meta via `get_post_meta()` instead of going through `WC_Coupon::get_meta()`. Debug logs from real-world testing showed the coupon being correctly identified as `subscription_trial` but its custom trial-length/period meta returning empty from the WC_Coupon object in the checkout-retry request. Falling back to a direct DB read bypasses whichever cache / hydration path was returning stale data and makes the trial value authoritative.
+* Per-coupon-code memoization added inside `find_trial_from_codes()`. Previous versions could log dozens of identical `find_trial:` lines per request because WCS calls the trial getters many times per checkout render; now each coupon is looked up once per request.
+* When the coupon post cannot be found via `wc_get_coupon_id_by_code()` (some object-cache configurations return 0 for freshly created coupons), fall back to a direct `wp_posts` query as a last resort.
 
 = 1.1.3 =
 * Extended debug logging: every step of the trial-application path (`apply_trial_to_subscriptions`, `apply_trial_on_session_load`, `recalculate_after_session_load`, `find_trial_from_codes`) now writes a log line via wc_get_logger() to `wcst-trial-coupons` when `WCST_DEBUG` or `WP_DEBUG` is on. Makes it trivial to see exactly where the flow breaks in problematic gateway retry scenarios.

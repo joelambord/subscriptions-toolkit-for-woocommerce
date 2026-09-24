@@ -265,23 +265,60 @@ class WCST_Trial_Coupons_Cart {
 	 * @return array{0:int,1:string}
 	 */
 	private function find_trial_from_codes( array $codes ) {
+		static $memo = [];
+
 		$trial_length = 0;
 		$trial_period = '';
 
 		foreach ( $codes as $code ) {
-			$coupon    = new WC_Coupon( $code );
-			$is_trial  = $coupon->is_type( WCST_TRIAL_COUPON_TYPE );
-			$type_slug = $coupon->get_discount_type();
-			$length    = (int) $coupon->get_meta( WCST_TRIAL_META_LENGTH );
-			$period    = (string) $coupon->get_meta( WCST_TRIAL_META_PERIOD );
-
-			$this->debug( 'find_trial: code=' . $code . ' type=' . $type_slug . ' is_trial=' . ( $is_trial ? '1' : '0' ) . ' length=' . $length . ' period=' . $period );
-
-			// If discount_type check missed but our meta is set, still treat
-			// it as a trial coupon.
-			if ( ! $is_trial && $length <= 0 ) {
+			$code = (string) $code;
+			if ( '' === $code ) {
 				continue;
 			}
+
+			// Per-request memoization: a coupon-code -> [ length, period ]
+			// lookup is idempotent within a request, and WCS calls the trial
+			// getters dozens of times per checkout render. Without this the
+			// log file explodes and every render does N SQL round-trips.
+			if ( isset( $memo[ $code ] ) ) {
+				list( $length, $period ) = $memo[ $code ];
+			} else {
+				$length = 0;
+				$period = '';
+
+				$coupon_id = function_exists( 'wc_get_coupon_id_by_code' ) ? wc_get_coupon_id_by_code( $code ) : 0;
+
+				if ( ! $coupon_id ) {
+					// Fallback direct query — some cache layers can make
+					// wc_get_coupon_id_by_code() return 0 even when the post
+					// exists. This is cheap because coupons are rare.
+					global $wpdb;
+					$coupon_id = (int) $wpdb->get_var( $wpdb->prepare(
+						"SELECT ID FROM {$wpdb->posts} WHERE post_type = 'shop_coupon' AND post_status = 'publish' AND post_title = %s LIMIT 1",
+						$code
+					) );
+				}
+
+				if ( $coupon_id > 0 ) {
+					$type   = (string) get_post_meta( $coupon_id, 'discount_type', true );
+					$length = (int) get_post_meta( $coupon_id, WCST_TRIAL_META_LENGTH, true );
+					$period = (string) get_post_meta( $coupon_id, WCST_TRIAL_META_PERIOD, true );
+					$this->debug( 'find_trial: code=' . $code . ' id=' . $coupon_id . ' type=' . $type . ' length=' . $length . ' period=' . $period );
+
+					// Only accept as a trial coupon if either the discount
+					// type matches OR our meta is populated (belt-and-braces
+					// for coupons whose type was reset while meta survived).
+					if ( WCST_TRIAL_COUPON_TYPE !== $type && $length <= 0 ) {
+						$length = 0;
+						$period = '';
+					}
+				} else {
+					$this->debug( 'find_trial: code=' . $code . ' NO coupon post found' );
+				}
+
+				$memo[ $code ] = [ $length, $period ];
+			}
+
 			if ( $length > 0 && '' !== $period ) {
 				$trial_length = $length;
 				$trial_period = $period;
