@@ -184,11 +184,13 @@ class WCST_Trial_Coupons_Cart {
 			return;
 		}
 		$applied = $cart->get_applied_coupons();
+		$this->debug( 'apply_trial_to_subscriptions: applied=' . wp_json_encode( $applied ) );
 		if ( empty( $applied ) ) {
 			return;
 		}
 
 		list( $trial_length, $trial_period ) = $this->find_trial_from_codes( $applied );
+		$this->debug( 'apply_trial_to_subscriptions: resolved length=' . $trial_length . ' period=' . $trial_period );
 		if ( $trial_length <= 0 || '' === $trial_period ) {
 			return;
 		}
@@ -215,6 +217,7 @@ class WCST_Trial_Coupons_Cart {
 		$applied = ( WC()->session instanceof WC_Session )
 			? (array) WC()->session->get( 'applied_coupons', [] )
 			: [];
+		$this->debug( 'session_load: applied=' . wp_json_encode( $applied ) );
 		if ( empty( $applied ) ) {
 			return $cart_item;
 		}
@@ -225,6 +228,7 @@ class WCST_Trial_Coupons_Cart {
 
 		if ( ! empty( $cart_item['data'] ) ) {
 			$this->apply_trial_to_product( $cart_item['data'], $trial_length, $trial_period );
+			$this->debug( 'session_load: injected trial into product=' . $cart_item['data']->get_id() );
 		}
 		return $cart_item;
 	}
@@ -240,11 +244,13 @@ class WCST_Trial_Coupons_Cart {
 			return;
 		}
 		$applied = $cart->get_applied_coupons();
+		$this->debug( 'cart_loaded_from_session: applied=' . wp_json_encode( $applied ) );
 		if ( empty( $applied ) ) {
 			return;
 		}
 		list( $length, $period ) = $this->find_trial_from_codes( $applied );
 		if ( $length > 0 && '' !== $period ) {
+			$this->debug( 'cart_loaded_from_session: forcing recalc, length=' . $length );
 			$cart->calculate_totals();
 		}
 	}
@@ -263,11 +269,13 @@ class WCST_Trial_Coupons_Cart {
 		$trial_period = '';
 
 		foreach ( $codes as $code ) {
-			$coupon = new WC_Coupon( $code );
-			$is_trial = $coupon->is_type( WCST_TRIAL_COUPON_TYPE );
+			$coupon    = new WC_Coupon( $code );
+			$is_trial  = $coupon->is_type( WCST_TRIAL_COUPON_TYPE );
+			$type_slug = $coupon->get_discount_type();
+			$length    = (int) $coupon->get_meta( WCST_TRIAL_META_LENGTH );
+			$period    = (string) $coupon->get_meta( WCST_TRIAL_META_PERIOD );
 
-			$length = (int) $coupon->get_meta( WCST_TRIAL_META_LENGTH );
-			$period = (string) $coupon->get_meta( WCST_TRIAL_META_PERIOD );
+			$this->debug( 'find_trial: code=' . $code . ' type=' . $type_slug . ' is_trial=' . ( $is_trial ? '1' : '0' ) . ' length=' . $length . ' period=' . $period );
 
 			// If discount_type check missed but our meta is set, still treat
 			// it as a trial coupon.

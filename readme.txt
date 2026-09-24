@@ -6,7 +6,7 @@ Tested up to: 6.6
 Requires PHP: 7.4
 WC requires at least: 8.0
 WC tested up to: 10.2
-Stable tag: 1.1.2
+Stable tag: 1.1.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,6 +44,9 @@ Other coupon extensions: Compatible with many other plugins like Smart Coupons f
 5. WooCommerce Subscriptions recalculates: initial total becomes 0.00 and the renewal date is pushed out by the trial length.
 
 == Changelog ==
+
+= 1.1.3 =
+* Extended debug logging: every step of the trial-application path (`apply_trial_to_subscriptions`, `apply_trial_on_session_load`, `recalculate_after_session_load`, `find_trial_from_codes`) now writes a log line via wc_get_logger() to `wcst-trial-coupons` when `WCST_DEBUG` or `WP_DEBUG` is on. Makes it trivial to see exactly where the flow breaks in problematic gateway retry scenarios.
 
 = 1.1.2 =
 * Fix: the trial-getter filter added in 1.1.1 was still silently skipped in the checkout-retry flow after a failed / cancelled payment because of two timing bugs. The per-request memoization cached the empty result of an early call (before session was hydrated) for the entire request, and the "product is in cart" guard returned false whenever WCS asked for the trial before cart contents were populated. Both are fixed: an empty lookup is never cached, applied coupon codes are read from `WC()->cart` first and fall back to `WC()->session`, and the in-cart guard is removed — the trial coupon can only be applied when a subscription is in the cart in the first place, so the coupon's presence in the session is enough of a signal.
