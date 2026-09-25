@@ -9,7 +9,7 @@
 
 set -euo pipefail
 
-SLUG="subscriptions-toolkit-for-woocommerce"
+SLUG="navest-toolkit-for-woocommerce"
 SRC_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 DEST_DIR="${1:-$(dirname "$SRC_DIR")}"
 ZIP_PATH="$DEST_DIR/$SLUG.zip"

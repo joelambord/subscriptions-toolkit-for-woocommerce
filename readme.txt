@@ -1,4 +1,4 @@
-=== Subscriptions Toolkit for WooCommerce ===
+=== NAVEST Toolkit for WooCommerce ===
 Contributors: joelambord
 Tags: woocommerce, subscriptions, coupons, free trial, retention
 Requires at least: 6.2
@@ -6,7 +6,7 @@ Tested up to: 7.1
 Requires PHP: 7.4
 WC requires at least: 8.0
 WC tested up to: 10.2
-Stable tag: 1.1.4
+Stable tag: 1.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -14,7 +14,7 @@ A modular toolkit for WooCommerce Subscriptions. Ships with a Subscription Trial
 
 == Description ==
 
-Subscriptions Toolkit for WooCommerce is an umbrella plugin for WooCommerce Subscriptions add-ons. It ships as a set of self-contained modules that can grow over time. The first module is a **Subscription Trial** coupon: applying it drops the initial cart total to 0.00 and pushes the first recurring payment out by the configured trial length. The customer sees "15 days" (for example) next to the coupon in the cart and "First renewal: Oct 9, 2026" in the totals.
+NAVEST Toolkit for WooCommerce is an umbrella plugin for WooCommerce Subscriptions add-ons. It ships as a set of self-contained modules that can grow over time. The first module is a **Subscription Trial** coupon: applying it drops the initial cart total to 0.00 and pushes the first recurring payment out by the configured trial length. The customer sees "15 days" (for example) next to the coupon in the cart and "First renewal: Oct 9, 2026" in the totals.
 
 Planned modules:
 
@@ -45,9 +45,9 @@ Cache plugins: Compatible with WP Rocket, W3 Total Cache, LiteSpeed Cache, WP Su
 
 == Changelog ==
 
-= 1.1.4 =
-* Initial public release.
+= 1.2.0 =
+* Initial public release under the name **NAVEST Toolkit for WooCommerce**.
 * Trial Coupons module: registers a "Subscription Trial" coupon type. When applied, the initial cart total drops to 0.00 and the first recurring payment is pushed out by the configured trial length. Compatible with Smart Coupons for WooCommerce (Pro) by WebToffee — the type registers via the standard `woocommerce_coupon_discount_types` filter.
 * Robust against gateway retry flows: the trial is re-applied via WCS's own trial getters (`woocommerce_subscriptions_product_trial_length` / `_period`) reading straight from post meta, so a cancelled or failed payment followed by a checkout retry keeps the trial intact.
 * German translations bundled (de_DE, de_CH, de_AT). Rewrites the ungrammatical WooCommerce Subscriptions German phrase "mit ein 15-Tage kostenlose Testphase" into the correct dative form "mit 15 Tagen kostenloser Testphase".
-* Optional debug logging via WooCommerce's logger (source `wcst-trial-coupons`), enabled by `define( 'WCST_DEBUG', true );` in wp-config.php or automatically when `WP_DEBUG` is on.
+* Optional debug logging via WooCommerce's logger (source `navest-trial-coupons`), enabled by `define( 'WCST_DEBUG', true );` in wp-config.php or automatically when `WP_DEBUG` is on.

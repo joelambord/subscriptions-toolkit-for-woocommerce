@@ -6,7 +6,7 @@
  * saving, and a validation exception in WooCommerce Subscriptions so
  * WCS accepts the custom type on subscription carts.
  *
- * @package SubscriptionsToolkitForWC
+ * @package NavestToolkitForWC
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -27,7 +27,7 @@ class WCST_Trial_Coupons_Admin {
 	 * automatically.
 	 */
 	public function register_discount_type( $types ) {
-		$types[ WCST_TRIAL_COUPON_TYPE ] = __( 'Subscription Trial', 'subscriptions-toolkit-for-woocommerce' );
+		$types[ WCST_TRIAL_COUPON_TYPE ] = __( 'Subscription Trial', 'navest-toolkit-for-woocommerce' );
 		return $types;
 	}
 
@@ -62,15 +62,15 @@ class WCST_Trial_Coupons_Admin {
 		$periods = function_exists( 'wcs_get_available_time_periods' )
 			? wcs_get_available_time_periods()
 			: [
-				'day'   => __( 'day', 'subscriptions-toolkit-for-woocommerce' ),
-				'week'  => __( 'week', 'subscriptions-toolkit-for-woocommerce' ),
-				'month' => __( 'month', 'subscriptions-toolkit-for-woocommerce' ),
-				'year'  => __( 'year', 'subscriptions-toolkit-for-woocommerce' ),
+				'day'   => __( 'day', 'navest-toolkit-for-woocommerce' ),
+				'week'  => __( 'week', 'navest-toolkit-for-woocommerce' ),
+				'month' => __( 'month', 'navest-toolkit-for-woocommerce' ),
+				'year'  => __( 'year', 'navest-toolkit-for-woocommerce' ),
 			];
 		?>
 		<p class="form-field subscription_coupon_trial_length_field">
 			<label for="<?php echo esc_attr( WCST_TRIAL_META_LENGTH ); ?>">
-				<?php esc_html_e( 'Free trial', 'subscriptions-toolkit-for-woocommerce' ); ?>
+				<?php esc_html_e( 'Free trial', 'navest-toolkit-for-woocommerce' ); ?>
 			</label>
 			<span class="wrap">
 				<input type="number"
@@ -83,7 +83,7 @@ class WCST_Trial_Coupons_Admin {
 				       value="<?php echo esc_attr( $length ); ?>" />
 
 				<label for="<?php echo esc_attr( WCST_TRIAL_META_PERIOD ); ?>" style="display:none" class="wcs_hidden_label">
-					<?php esc_html_e( 'Subscription trial period', 'subscriptions-toolkit-for-woocommerce' ); ?>
+					<?php esc_html_e( 'Subscription trial period', 'navest-toolkit-for-woocommerce' ); ?>
 				</label>
 
 				<select id="<?php echo esc_attr( WCST_TRIAL_META_PERIOD ); ?>"
@@ -101,7 +101,7 @@ class WCST_Trial_Coupons_Admin {
 				// wcs_help_tip() (via wc_help_tip()) returns markup that is
 				// already escaped for the tooltip attribute + label output.
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-				echo wcs_help_tip( __( 'Length of the free trial granted when this coupon is applied. The customer pays 0.00 at checkout and the first recurring payment is delayed by this period.', 'subscriptions-toolkit-for-woocommerce' ) );
+				echo wcs_help_tip( __( 'Length of the free trial granted when this coupon is applied. The customer pays 0.00 at checkout and the first recurring payment is delayed by this period.', 'navest-toolkit-for-woocommerce' ) );
 			}
 			?>
 		</p>

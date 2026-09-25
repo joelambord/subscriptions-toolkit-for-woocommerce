@@ -1,25 +1,26 @@
 <?php
 /**
- * Plugin Name: Subscriptions Toolkit for WooCommerce
+ * Plugin Name: NAVEST Toolkit for WooCommerce
  * Description: A toolkit of enhancements for WooCommerce Subscriptions. First module: a "Subscription Trial" coupon type that grants a configurable free trial (days / weeks / months / years) on subscription products. Compatible with Smart Coupons for WooCommerce Pro (WebToffee). Further modules (retention, dunning, ...) will be added over time.
- * Version:     1.1.4
+ * Version:     1.2.0
  * Author:      Joël Ambord
  * Author URI:  https://profiles.wordpress.org/joelambord/
- * Text Domain: subscriptions-toolkit-for-woocommerce
+ * Text Domain: navest-toolkit-for-woocommerce
  * Domain Path: /languages
  * Requires at least: 6.2
  * Requires PHP: 7.4
+ * Requires Plugins: woocommerce
  * WC requires at least: 8.0
  * WC tested up to: 10.2
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  *
- * @package SubscriptionsToolkitForWC
+ * @package NavestToolkitForWC
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'WCST_VERSION', '1.1.4' );
+define( 'WCST_VERSION', '1.2.0' );
 define( 'WCST_FILE', __FILE__ );
 define( 'WCST_PATH', plugin_dir_path( __FILE__ ) );
 define( 'WCST_URL',  plugin_dir_url( __FILE__ ) );
@@ -64,7 +65,7 @@ function wcst_missing_dependency_notice() {
 		return;
 	}
 	echo '<div class="notice notice-error"><p>';
-	echo esc_html__( 'Subscriptions Toolkit for WooCommerce requires WooCommerce and WooCommerce Subscriptions to be active.', 'subscriptions-toolkit-for-woocommerce' );
+	echo esc_html__( 'NAVEST Toolkit for WooCommerce requires WooCommerce and WooCommerce Subscriptions to be active.', 'navest-toolkit-for-woocommerce' );
 	echo '</p></div>';
 }
 

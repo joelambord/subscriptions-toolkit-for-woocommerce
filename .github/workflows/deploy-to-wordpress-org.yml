@@ -2,7 +2,7 @@ name: Deploy to WordPress.org
 
 # Full release deploy: triggered by pushing a semver tag (v1.2.3 / 1.2.3),
 # or manually from the Actions tab. The workflow pushes /trunk/ AND a new
-# /tags/<version>/ folder to https://plugins.svn.wordpress.org/subscriptions-toolkit-for-woocommerce/,
+# /tags/<version>/ folder to https://plugins.svn.wordpress.org/navest-toolkit-for-woocommerce/,
 # and updates the /assets/ folder from .wordpress-org/.
 #
 # The tag name and the "Stable tag" line in readme.txt should match the
@@ -39,7 +39,7 @@ jobs:
         env:
           SVN_USERNAME: ${{ secrets.WORDPRESS_ORG_USERNAME }}
           SVN_PASSWORD: ${{ secrets.WORDPRESS_ORG_PASSWORD }}
-          SLUG: subscriptions-toolkit-for-woocommerce
+          SLUG: navest-toolkit-for-woocommerce
 
       - name: Attach built ZIP to the GitHub Release
         if: steps.deploy.outputs.zip-path
